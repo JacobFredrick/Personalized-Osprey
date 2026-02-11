@@ -2,11 +2,41 @@ let settings = {
     "imported": {
         "transitionMode": "auto"
     },
+    "auto": [
+        {
+            "label": "Hub Score",
+            "trigger": "q",
+            "columnStart": 1,
+            "columnEnd": 3,
+            "rowStart": 1,
+            "rowEnd": 3,
+            "writeType": "int"
+        },
+        {
+            "label": "Feeding",
+            "trigger": "a",
+            "columnStart": 3,
+            "columnEnd": 5,
+            "rowStart": 1,
+            "rowEnd": 3,
+            "writeType": "numInput"
+        },
+        {
+            "label": "Climb level",
+            "trigger": "w",
+            "columnStart": 1,
+            "columnEnd": 5,
+            "rowStart": 3,
+            "rowEnd": 5,
+            "writeType": "int"
+        },
+
+    ],
     "tele": [
         //cube cone buttons
         {
-            "label": "Tele Amp",
-            "trigger": "e",
+            "label": "Hub score",
+            "trigger": "q",
             "columnStart": 1,
             "columnEnd": 2,
             "rowStart": 1,
@@ -15,8 +45,8 @@ let settings = {
             "writeType": "int"
         },
         {
-            "label": "Tele Speaker",
-            "trigger": "r",
+            "label": "Hub misses",
+            "trigger": "e",
             "columnStart": 2,
             "columnEnd": 3,
             "rowStart": 1,
@@ -25,18 +55,18 @@ let settings = {
             "writeType": "int"
         },
         {
-            "label": "Tele Miss A",
-            "trigger": "d",
+            "label": "Feeding",
+            "trigger": "a",
             "columnStart": 1,
             "columnEnd": 2,
             "rowStart": 3,
             "rowEnd": 4,
             "writeLoc": 6,
-            "writeType": "int"
+            "writeType": "numInput"
         },
         {
-            "label": "Tele Miss S",
-            "trigger": "f",
+            "label": "Penalty",
+            "trigger": "d",
             "columnStart": 2,
             "columnEnd": 3,
             "rowStart": 3,
@@ -45,81 +75,91 @@ let settings = {
             "writeType": "int"
         },
         {
-            "label": "Trap note",
-            "trigger": "u",
+            "label": "Clears bump",
+            "trigger": "r",
             "columnStart": 3,
             "columnEnd": 4,
             "rowStart": 1,
             "rowEnd": 2,
             "writeLoc": 10,
-            "writeType": "int"
+            "writeType": "bool"
+        },
+        {
+            "label": "Clears trench",
+            "trigger": "f",
+            "columnStart": 3,
+            "columnEnd": 4,
+            "rowStart": 2,
+            "rowEnd": 3,
+            "writeLoc": 10,
+            "writeType": "bool"
         },
         //scoring buttons end
         {
-            "label": "Penalty",
-            "trigger": "o",
-            "columnStart": 3,
+            "label": "Attacking time",
+            "trigger": "g",
+            "columnStart": 4,
             "columnEnd": 5,
             "rowStart": 2,
             "rowEnd": 3,
             "writeLoc": 16,
-            "writeType": "int"
+            "writeType": "inc"
         },
         {
-            "label": "Forced Misses",
-            "trigger": "v",
+            "label": "TBD",
+            "trigger": "z",
             "columnStart": 1,
             "columnEnd": 3,
             "rowStart": 4,
             "rowEnd": 5,
             "writeLoc": 14,
-            "writeType": "int"
+            "writeType": "bool"
         },
         {
-            "label": "Spotlight",
-            "trigger": "k",
+            "label": "Down time",
+            "trigger": "x",
             "columnStart": 3,
             "columnEnd": 4,
             "rowStart": 4,
             "rowEnd": 5,
             "writeLoc": 11,
-            "writeType": "bool"
+            "writeType": "int"
         },
         {
-            "label": "Climb Level",
-            "trigger": "j",
+            "label": "L1 climb",
+            "trigger": "c",
             "columnStart": 3,
             "columnEnd": 4,
             "rowStart": 3,
             "rowEnd": 4,
             "writeLoc": 12,
-            "writeType": "cycG",
+            "writeType": "bool",
             "cycGOptions": [0, 1, 3],
             "writeCycGOptions": 3
         },
         {
-            "label": "Fed Note",
-            "trigger": "p",
+            "label": "L2 climb",
+            "trigger": "v",
             "columnStart": 4,
             "columnEnd": 5,
             "rowStart": 3,
             "rowEnd": 4,
             "writeLoc": 9,
-            "writeType": "int"
+            "writeType": "bool"
         },
         {
-            "label": "Down Time",
-            "trigger": "f",
+            "label": "L3 climb",
+            "trigger": "b",
             "columnStart": 4,
             "columnEnd": 5,
             "rowStart": 4,
             "rowEnd": 5,
             "writeLoc": 15,
-            "writeType": "inc"
+            "writeType": "bool"
         },
         {
-            "label": "Defence",
-            "trigger": "i",
+            "label": "Defense time",
+            "trigger": "t",
             "columnStart": 4,
             "columnEnd": 5,
             "rowStart": 1,
@@ -185,7 +225,7 @@ function getDataSettings() {
 
 function getDataArray() {
     const dataArray = [];
-    for (const data of [settings.tele])
+    for (const data of [settings.auto, settings.tele])
         for (let i = 0; i < data.length; i++) {
             const point = data[i];
             let value = 0;

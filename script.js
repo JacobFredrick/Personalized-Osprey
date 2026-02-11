@@ -1,5 +1,5 @@
 //variable declarations
-let state = "init", timer = 150, timerIsTicking = false, delay = true, rowContent = new Map(), notesToggled = false, allianceColor = "n";
+let state = "init", timer = 160, timerIsTicking = false, delay = true, rowContent = new Map(), notesToggled = false, allianceColor = "n";
 
 let dataPoints = new Map();
 let timeInt = 1000; // Time Interval, SHOULD BE 1000, 10 if speed!!!!!!!
@@ -74,6 +74,9 @@ function switchColor() {
 //search function for localStorage
 
 let keys = [];
+for (let i = 0; i < settings.auto.length; i++) {
+    keys.push(settings.auto[i].trigger);
+}
 for (let i = 0; i < settings.tele.length; i++) {
     keys.push(settings.tele[i].trigger);
 }
@@ -132,7 +135,17 @@ window.addEventListener('keydown', function (keystroke) {
     }
 
     for (let i = 0; i < uniqueKeys.length; i++) {
+        var set = settings.auto[i];
         var tes = settings.tele[i];
+        if (state == "auto") {
+            if (set && set.trigger == keystroke.key) {
+                clickEvt(set.writeType, set.label);
+            }
+            if (set && set.trigger.toUpperCase() == keystroke.key) {
+                clickEvt(set.writeType, set.label, true);
+                console.log("reverse")
+            }
+        }
         if (state == "tele") {
             if (tes && tes.trigger == keystroke.key) {
                 clickEvt(tes.writeType, tes.label);
@@ -151,9 +164,94 @@ function generateMainPage(stage) {
     state = stage;
     document.getElementById("display-match").innerHTML = "Match:  " + dataPoints.get("Match Number");
     document.getElementById("display-team").innerHTML = "Team: " + dataPoints.get("Team Number");
-    if (stage == "tele") {
+    if (stage == "auto") {
         document.getElementById("initPage").style.display = "none";
         document.getElementById("mainPage").style.display = "grid";
+        for (i = 0; i < settings.auto.length; i++) {
+            const box = document.createElement("div")
+            const wLoc = settings.auto[i].label;
+            box.innerHTML = wLoc;
+            box.classList.add("mainPageBox");
+            box.style.gridColumnStart = settings.auto[i].columnStart;
+            box.style.gridColumnEnd = settings.auto[i].columnEnd;
+            box.style.gridRowStart = settings.auto[i].rowStart;
+            box.style.gridRowEnd = settings.auto[i].rowEnd;
+
+            let wType = settings.auto[i].writeType;
+            box.id = "box" + wLoc
+            if (wType == "numInput") {
+                const input = document.createElement("input");
+                input.type = "number";
+                input.id = "numInput" + wLoc;
+                input.placeholder = "0";
+                input.style.width = "50px";
+                input.style.fontSize = "1.2em";
+                input.style.textAlign = "center";
+                const addValue = () => {
+                    const val = parseInt(input.value);
+                    if (!isNaN(val) && val !== 0) {
+                        dataPoints.set(wLoc, dataPoints.get(wLoc) + val);
+                        document.getElementById("label" + wLoc).innerHTML = dataPoints.get(wLoc);
+                        input.value = "";
+                    }
+                };
+                input.addEventListener("keydown", (e) => {
+                    e.stopPropagation();
+                    if (e.key === "Enter") {
+                        addValue();
+                        e.preventDefault();
+                    }
+                });
+                input.addEventListener("blur", addValue);
+                box.appendChild(input);
+                box.addEventListener("click", (e) => {
+                    if (e.target !== input) input.focus();
+                });
+            } else {
+                box.addEventListener("click", () => clickEvt(wType, wLoc))
+            }
+            document.getElementById("mainPage").appendChild(box);
+
+            const boxLabel = document.createElement("div");
+            boxLabel.classList.add("mainPageLabel");
+            boxLabel.style.gridColumn = (settings.auto[i].columnEnd - 1) + "/" + (settings.auto[i].columnEnd - 1);
+            boxLabel.style.gridRow = (settings.auto[i].rowEnd - 1) + "/" + (settings.auto[i].rowEnd - 1);
+            boxLabel.innerHTML = settings.auto[i].trigger.toUpperCase()
+            boxLabel.addEventListener("click", () => clickEvt(wType, wLoc))
+            document.getElementById("mainPage").appendChild(boxLabel);
+
+            // Counter with decrement button
+            const counterContainer = document.createElement("div");
+            counterContainer.classList.add("mainPageCounterWrapper");
+            counterContainer.style.gridColumn = settings.auto[i].columnStart + "/" + settings.auto[i].columnStart;
+            counterContainer.style.gridRow = (settings.auto[i].rowEnd - 1) + "/" + (settings.auto[i].rowEnd - 1);
+
+            const boxCount = document.createElement("div");
+            boxCount.classList.add("mainPageCounter");
+            boxCount.id = "label" + wLoc;
+            boxCount.innerHTML = dataPoints.get(wLoc);
+            boxCount.addEventListener("click", () => clickEvt(wType, wLoc));
+            counterContainer.appendChild(boxCount);
+
+            const decrementBtn = document.createElement("button");
+            decrementBtn.classList.add("mainPageDecrement");
+            decrementBtn.innerHTML = "-";
+            decrementBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const currentValue = dataPoints.get(wLoc);
+                if (currentValue > 0) {
+                    dataPoints.set(wLoc, currentValue - 1);
+                    document.getElementById("label" + wLoc).innerHTML = currentValue - 1;
+                }
+            });
+            counterContainer.appendChild(decrementBtn);
+
+            document.getElementById("mainPage").appendChild(counterContainer);
+        }
+        console.log("auto generated");
+        state = "auto"
+    }
+    if (stage == "tele") {
         for (i = 0; i < settings.tele.length; i++) {
             const box = document.createElement("div")
             const wLoc = settings.tele[i].label;
@@ -166,7 +264,37 @@ function generateMainPage(stage) {
 
             let wType = settings.tele[i].writeType;
             box.id = "box" + wLoc
-            box.addEventListener("click", () => clickEvt(wType, wLoc))
+            if (wType == "numInput") {
+                const input = document.createElement("input");
+                input.type = "number";
+                input.id = "numInput" + wLoc;
+                input.placeholder = "0";
+                input.style.width = "50px";
+                input.style.fontSize = "1.2em";
+                input.style.textAlign = "center";
+                const addValue = () => {
+                    const val = parseInt(input.value);
+                    if (!isNaN(val) && val !== 0) {
+                        dataPoints.set(wLoc, dataPoints.get(wLoc) + val);
+                        document.getElementById("label" + wLoc).innerHTML = dataPoints.get(wLoc);
+                        input.value = "";
+                    }
+                };
+                input.addEventListener("keydown", (e) => {
+                    e.stopPropagation();
+                    if (e.key === "Enter") {
+                        addValue();
+                        e.preventDefault();
+                    }
+                });
+                input.addEventListener("blur", addValue);
+                box.appendChild(input);
+                box.addEventListener("click", (e) => {
+                    if (e.target !== input) input.focus();
+                });
+            } else {
+                box.addEventListener("click", () => clickEvt(wType, wLoc))
+            }
             document.getElementById("mainPage").appendChild(box);
 
             const boxLabel = document.createElement("div");
@@ -423,6 +551,9 @@ function generateMainPage(stage) {
 
 
 
+        for (i = 0; i < settings.auto.length; i++) {
+            rowContent.set(settings.auto[i].label, settings.auto[i]);
+        }
         for (i = 0; i < settings.tele.length; i++) {
             rowContent.set(settings.tele[i].label, settings.tele[i]);
         }
@@ -549,7 +680,7 @@ function timerStart() {
     const firstStart = !timerIsTicking
     timerIsTicking = true;
     if (firstStart) {
-        timer = 150;
+        timer = 160;
         updateTimer();
     }
 }
@@ -643,6 +774,11 @@ function clickEvt(type, loc, rev = null) {
             document.getElementById("box" + loc).style.backgroundColor = "var(--altBgColor)"
         }
     }
+    if (type == "numInput") {
+        const input = document.getElementById("numInput" + loc);
+        if (input) input.focus();
+        return;
+    }
     if (type == "inc") {
         if (rev) {
             return;
@@ -732,7 +868,7 @@ function clickEvt(type, loc, rev = null) {
             dataPoints.set(selected, !dataPoints.get(selected));
         }
 
-        if ((rowContent.get(selected).writeType == "int") || (rowContent.get(selected).writeType == "inc")) {
+        if ((rowContent.get(selected).writeType == "int") || (rowContent.get(selected).writeType == "inc") || (rowContent.get(selected).writeType == "numInput")) {
             if (rev == "plus") {
                 dataPoints.set(selected, dataPoints.get(selected) + 1);
             }
@@ -842,6 +978,14 @@ function  transition(i) {
     }
     if (i == 1 && state == "standby") {
         timerStart();
+        generateMainPage("auto");
+    }
+    if (i == 2) {
+        let removeElem = (settings.auto.length) * 3
+        for (let i = 0; i < removeElem; i++) {
+            mainPageElem = document.getElementById("mainPage");
+            mainPageElem.removeChild(mainPageElem.lastElementChild)
+        }
         generateMainPage("tele");
     }
     if (i == 4) {
@@ -858,7 +1002,7 @@ function  transition(i) {
 function resetGame() {
     isSorted = false;
     state = "init";
-    timer = 150;
+    timer = 160;
     delay = true;
     rowContent = new Map();
     incArr = [];
@@ -939,15 +1083,27 @@ function resetGame() {
 }
 
 function nextStage() {
-    if (state == "tele") {
+    if (state == "auto") {
+        transition(2);
+    }
+    else if (state == "tele") {
         transition(4);
     }
     console.log("Continue Button Clicked");
 }
 
 function previousStage() {
-    if (state == "tele") {
+    if (state == "auto") {
         abortMatch();
+    }
+    else if (state == "tele") {
+        incArr = [];
+        let removeElem = (settings.tele.length) * 3
+        for (let i = 0; i < removeElem; i++) {
+            mainPageElem = document.getElementById("mainPage");
+            mainPageElem.removeChild(mainPageElem.lastElementChild)
+        }
+        generateMainPage("auto");
     }
     console.log("Back Button Clicked");
 }
