@@ -1,0 +1,1063 @@
+//variable declarations
+let state = "init", timer = 150, timerIsTicking = false, delay = true, rowContent = new Map(), notesToggled = false, allianceColor = "n";
+
+let dataPoints = new Map();
+let timeInt = 1000; // Time Interval, SHOULD BE 1000, 10 if speed!!!!!!!
+let testing = true; // DISABLES INTRO PAGE CHECKS IF TRUE
+
+window.onscroll = () => { window.scroll(0, 0); }; //stops scrolling, hacky bugfix
+
+//code for search qr popup
+var modal = document.getElementById("myModal");
+var btn = document.getElementById("searchBtn");
+var span = document.getElementsByClassName("close")[0];
+// When the user clicks on <span> (x) or clicks anywhere outside of the modal, close the modal
+// span.onclick = function() {
+//   modal.style.display = "none";
+// }
+window.onclick = function (event) {
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+
+//transitions to 
+document.getElementById("initBtn").addEventListener("click", () => {
+    transition(0);
+})
+
+//localStorage console commands
+function clearStorage() {
+    console.log("CLEARING DATA");
+    localStorage.clear()
+    return;
+}
+function getStorage() {
+    console.log("GETTING DATA")
+    let allData = "";
+    for (var i in localStorage) {
+        if (typeof localStorage[i] == "string") {
+            allData += localStorage[i] + "\n"
+        }
+    }
+    console.log(allData)
+    return;
+}
+function setColor(col) {
+    allianceColor = col;
+    console.log("Alliance color set to: " + allianceColor)
+    return;
+}
+
+//switches alliance color when TITLE is pressed on the main page
+document.getElementById("initColor").addEventListener("click", () => {
+    switchColor()
+    console.log("color clicked")
+})
+allianceColor = "b";
+switchColor();
+
+document.getElementById("continue").addEventListener("click", nextStage);
+document.getElementById("back").addEventListener("click", previousStage);
+
+//always starts on red when app first launches
+function switchColor() {
+    if (allianceColor == "b") {
+        allianceColor = "r";
+        document.getElementById("initColor").style.backgroundColor = "var(--r)";
+    } else {
+        allianceColor = "b"
+        document.getElementById("initColor").style.backgroundColor = "var(--b)";
+    }
+}
+
+//search function for localStorage
+
+let keys = [];
+for (let i = 0; i < settings.tele.length; i++) {
+    keys.push(settings.tele[i].trigger);
+}
+let uniqueKeys = keys.filter((i, index) => {
+    return keys.indexOf(i) === index;
+});
+
+//updates QR code on qata page every second
+// let qrRefresh = setInterval(() => { if (state == "after") updateQr() }, 1000);
+
+
+//code for hotkeys, notes
+window.addEventListener('keydown', function (keystroke) {
+    if (keystroke.key == "Alt") {
+        keystroke.preventDefault();
+        if (state == "init" || state == "after") {
+            return;
+        }
+        console.log("toggled")
+        document.getElementById("notes").classList.remove("notesAnim")
+        document.getElementById("notes").classList.remove("notesAnimR")
+        document.getElementById("notesPage").classList.remove("notesPageAnim")
+        document.getElementById("notesPage").classList.remove("notesPageAnimR")
+
+        if (!notesToggled) {
+            document.getElementById('notesPage').classList.add("notesPageAnim")
+            document.getElementById('notes').classList.add("notesAnim")
+            document.getElementById('notes').focus()
+            notesToggled = true;
+
+            if (dataPoints.QATA == null) {
+                document.getElementById("notes").innerHTML = " ";
+            } else {
+                dataPoints.QATA = document.getElementById("notes").innerHTML;
+            }
+        }
+        else {
+            document.getElementById('notes').blur()
+
+            document.getElementById('notesPage').classList.add("notesPageAnimR")
+            document.getElementById('notes').classList.add("notesAnimR")
+            dataPoints.QATA = document.getElementById("notes").value
+            notesToggled = false;
+        }
+
+    }
+    if (notesToggled) {
+        return;
+    }
+    console.log(keystroke.key)
+    // if (state == "after") {
+    //     updateQr();
+    // }
+    if (keystroke.key == " " && state == "standby") {
+        transition(1)
+    }
+
+    for (let i = 0; i < uniqueKeys.length; i++) {
+        var tes = settings.tele[i];
+        if (state == "tele") {
+            if (tes && tes.trigger == keystroke.key) {
+                clickEvt(tes.writeType, tes.label);
+            }
+            if (tes && tes.trigger.toUpperCase() == keystroke.key) {
+                clickEvt(tes.writeType, tes.label, true);
+                console.log("reverse")
+            }
+        }
+    }
+}
+)
+
+//reads settings.js file, generates HTML for the app using that info
+function generateMainPage(stage) {
+    state = stage;
+    document.getElementById("display-match").innerHTML = "Match:  " + dataPoints.get("Match Number");
+    document.getElementById("display-team").innerHTML = "Team: " + dataPoints.get("Team Number");
+    if (stage == "tele") {
+        document.getElementById("initPage").style.display = "none";
+        document.getElementById("mainPage").style.display = "grid";
+        for (i = 0; i < settings.tele.length; i++) {
+            const box = document.createElement("div")
+            const wLoc = settings.tele[i].label;
+            box.innerHTML = wLoc;
+            box.classList.add("mainPageBox");
+            box.style.gridColumnStart = settings.tele[i].columnStart;
+            box.style.gridColumnEnd = settings.tele[i].columnEnd;
+            box.style.gridRowStart = settings.tele[i].rowStart;
+            box.style.gridRowEnd = settings.tele[i].rowEnd;
+
+            let wType = settings.tele[i].writeType;
+            box.id = "box" + wLoc
+            box.addEventListener("click", () => clickEvt(wType, wLoc))
+            document.getElementById("mainPage").appendChild(box);
+
+            const boxLabel = document.createElement("div");
+            boxLabel.classList.add("mainPageLabel");
+            boxLabel.style.gridColumn = (settings.tele[i].columnEnd - 1) + "/" + (settings.tele[i].columnEnd - 1);
+            boxLabel.style.gridRow = (settings.tele[i].rowEnd - 1) + "/" + (settings.tele[i].rowEnd - 1);
+            boxLabel.innerHTML = settings.tele[i].trigger.toUpperCase()
+            boxLabel.addEventListener("click", () => clickEvt(wType, wLoc))
+            document.getElementById("mainPage").appendChild(boxLabel);
+
+            // Counter with decrement button
+            const counterContainer = document.createElement("div");
+            counterContainer.classList.add("mainPageCounterWrapper");
+            counterContainer.style.gridColumn = settings.tele[i].columnStart + "/" + settings.tele[i].columnStart;
+            counterContainer.style.gridRow = (settings.tele[i].rowEnd - 1) + "/" + (settings.tele[i].rowEnd - 1);
+            
+            const boxCount = document.createElement("div");
+            boxCount.classList.add("mainPageCounter");
+            boxCount.id = "label" + wLoc;
+            boxCount.innerHTML = dataPoints.get(wLoc);
+            boxCount.addEventListener("click", () => clickEvt(wType, wLoc));
+            counterContainer.appendChild(boxCount);
+
+            const decrementBtn = document.createElement("button");
+            decrementBtn.classList.add("mainPageDecrement");
+            decrementBtn.innerHTML = "-";
+            decrementBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const currentValue = dataPoints.get(wLoc);
+                if (currentValue > 0) {
+                    dataPoints.set(wLoc, currentValue - 1);
+                    document.getElementById("label" + wLoc).innerHTML = currentValue - 1;
+                }
+            });
+            counterContainer.appendChild(decrementBtn);
+            
+            document.getElementById("mainPage").appendChild(counterContainer);
+        }
+        console.log("tele generated");
+        state = "tele"
+    }
+    if (stage == "after") {
+        document.getElementById("displayBar").style.display = "none"
+
+        //close notes box if it is open
+        document.getElementById('notes').blur()
+        dataPoints.set("QATA", document.getElementById("notes").value);
+        document.getElementById("notes").classList.remove("notesAnim")
+        document.getElementById("notes").classList.remove("notesAnimR")
+        document.getElementById("notesPage").classList.remove("notesPageAnim")
+        document.getElementById("notesPage").classList.remove("notesPageAnimR")
+
+        let mainPage = document.getElementById("mainPage");
+        mainPage.style.display = "flex"
+        mainPage.classList.remove("mainPage");
+        mainPage.classList.add("afterPageContainer");
+        let strInputs = document.createElement("div");
+        strInputs.classList.add("afterPageStringInputs")
+        let qataBox = document.createElement("div");
+        qataBox.classList.add("afterPageQata");
+        // let editId = document.createElement("input");
+        // let editTeam = document.createElement("input");
+        // let editMatchNo = document.createElement("input");
+        // let editPosNo = document.createElement("input");
+        // editMatchNo.setAttribute("type","text");
+        // editMatchNo.classList.add("afterPageQata");
+        // editPosNo.setAttribute("type","text");
+        // editPosNo.classList.add("afterPageQata");
+        // editTeam.setAttribute("type","text");
+        // editTeam.classList.add("afterPageQata");
+        // editId.setAttribute("type", "text");
+        // editId.classList.add("afterPageQata")
+        // qataBox.append(editPosNo);
+        // qataBox.append(editMatchNo);
+        // qataBox.append(editTeam);
+        // qataBox.append(editId);
+        mainPage.appendChild(strInputs);
+        strInputs.appendChild(qataBox);
+
+
+        for (let i = 0; i < settings.after.length; i++) {
+            if (settings.after[i].writeType == "cyc") {
+                const container = document.createElement("div");
+                container.classList.add("cycContainer");
+                qataBox.appendChild(container);
+
+                const label = document.createElement("div");
+                label.classList.add("qataLabel");
+                label.innerHTML = settings.after[i].label;
+                container.appendChild(label);
+
+                const bar = document.createElement("div");
+                bar.classList.add("qataCycContainer");
+                container.appendChild(bar);
+
+                for (let b = 0; b < settings.after[i].cycOptions.length; b++) {
+                    const option = document.createElement("div");
+                    option.classList.add("qataCyc");
+                    option.setAttribute("id", (settings.after[i].label + "cyc" + settings.after[i].cycOptions[b]))
+                    option.innerHTML = settings.after[i].cycOptions[b]
+                    option.addEventListener("click", () => clickEvt("cyc", settings.after[i].label, settings.after[i].cycOptions[b]))
+                    bar.appendChild(option);
+                }
+                //set default value
+                dataPoints.set(settings.after[i].label, settings.after[i].cycOptions[0]);
+
+            }
+
+
+
+            if (settings.after[i].writeType == "bool") {
+                const container = document.createElement("div");
+                container.classList.add("switchContainer");
+                qataBox.appendChild(container);
+
+                const labelText = document.createElement("div");
+                labelText.classList.add("qataLabel");
+                labelText.innerHTML = settings.after[i].label;
+                container.appendChild(labelText);
+
+                const labelElem = document.createElement("label");
+                labelElem.classList.add("switch")
+
+
+                container.appendChild(labelElem)
+
+                const input = document.createElement("input");
+                input.type = "checkbox";
+                input.addEventListener("click", () => clickEvt("afterBool", settings.after[i].label))
+                input.setAttribute("id", ("switch" + settings.after[i].label))
+                labelElem.appendChild(input);
+
+                const span = document.createElement("span");
+                span.classList.add("slider");
+                span.classList.add("round");
+                labelElem.appendChild(span);
+
+                dataPoints.set(settings.after[i].label, false)
+            }
+            if (settings.after[i].writeType == "str") {
+
+                const container = document.createElement("div");
+                container.classList.add("textContainer");
+                if (settings.after[i].label == "Other Qata") {
+                    container.style.height = "20vh"
+                }
+                qataBox.appendChild(container);
+
+                const labelText = document.createElement("div");
+                labelText.classList.add("qataLabel");
+                labelText.innerHTML = settings.after[i].label;
+                container.appendChild(labelText);
+
+
+                if (settings.after[i].label == "QATA") {
+                    const textbox = document.createElement("textarea");
+                    textbox.classList.add("afterTextBox");
+                    textbox.setAttribute("id", ("str" + settings.after[i].label));
+                    textbox.setAttribute("placeholder", settings.after[i].placeholder);
+                    textbox.style.height = "14vh";
+                    textbox.style.paddingTop = "7px";
+                    textbox.style.resize = "none";
+                    console.log("other qata from notes: " + dataPoints.get("QATA"));
+                    textbox.innerHTML = dataPoints.get("QATA");
+                    textbox.addEventListener("input", () => {
+                        dataPoints.set("QATA", textbox.value);
+                        updateQr();
+                    })
+                    container.appendChild(textbox)
+                }
+                else {
+                    const textbox = document.createElement("input");
+                    textbox.type = "text";
+                    textbox.classList.add("afterTextBox");
+                    textbox.setAttribute("id", ("str" + settings.after[i].label));
+                    textbox.setAttribute("placeholder", settings.after[i].placeholder)
+                    textbox.addEventListener("input", () => {
+                        dataPoints.set(settings.after[i].label, textbox.value);
+                        updateQr();
+                    })
+                    container.appendChild(textbox)
+                    dataPoints.set(settings.after[i].label, "");
+                }
+            }
+
+        }
+
+        // Start Info Text Boxes
+        const startContainer = document.createElement("div");
+        strInputs.appendChild(startContainer);
+        startContainer.classList.add("afterPageStartContainer");
+        for (let i = 0; i < settings.start.length; i++) {
+            const container = document.createElement("div");
+            container.classList.add("afterPageStartItem");
+            const labelText = document.createElement("div");
+            labelText.classList.add("afterPageStartLabel");
+            labelText.innerHTML = settings.start[i].label;
+            container.appendChild(labelText);
+            const textbox = document.createElement("input");
+            textbox.type = "text";
+            textbox.classList.add("afterTextBoxStartInfo");
+            textbox.value = dataPoints.get(settings.start[i].label);
+            textbox.setAttribute("id", ("str" + settings.start[i].label));
+            textbox.setAttribute("placeholder", settings.start[i].placeholder);
+            textbox.addEventListener("input", ()=> {
+                dataPoints.set(settings.start[i].label, !isNaN(textbox.value) ? parseInt(textbox.value) : textbox.value);
+                updateQr()
+            })
+            container.appendChild(textbox)
+            startContainer.appendChild(container)
+        }
+        for (let i = 0; i < 2; i++) {
+            let radioDiv = document.createElement("div");
+            radioDiv.classList.add("afterPageStartRadio")
+            let radio = document.createElement("input");
+            radio.type = "radio";
+            radio.name = "afterPageStartColors";
+            let color = "";
+            if (i % 2 == 0) {
+                color = "Red";
+                radio.value = "r";
+                if (allianceColor == "r") radio.checked = true
+            } else {
+                color = "Blue";
+                radio.value = "b";
+                if (allianceColor == "b") radio.checked = true
+            }
+            radio.id = "afterPageStart" + color;
+            radio.addEventListener("click", ()=> {
+                allianceColor = i % 2 == 0 ? "r" : "b";
+                updateQr();
+            });
+            let radioLabel = document.createElement("label");
+            radioLabel.classList.add("afterPageStartLabel");
+            radioLabel.innerHTML = color;
+            radioLabel.setAttribute("for", "afterPageStart" + color);
+            radioDiv.appendChild(radio);
+            radioDiv.appendChild(radioLabel);
+            startContainer.appendChild(radioDiv)
+        }
+
+        let editBox = document.createElement('div');
+        editBox.classList.add("afterPageEdit");
+
+        let editTable = document.createElement('div');
+        editTable.classList.add("afterEditTable");
+        let mainTable = document.createElement("table");
+        mainTable.setAttribute("id", "mainTable");
+        let tableBody = document.createElement("tbody");
+        editTable.appendChild(mainTable);
+
+        editBox.appendChild(editTable);
+        mainPage.appendChild(editBox);
+
+
+
+        for (i = 0; i < settings.tele.length; i++) {
+            rowContent.set(settings.tele[i].label, settings.tele[i]);
+        }
+
+        console.log(rowContent.size)
+
+
+        for (const value of rowContent.values()) {
+            var row = document.createElement("tr");
+            row.addEventListener("click", () => clickEvt("edit", value.label));
+            row.setAttribute('id', ("tr" + value.label));
+            row.setAttribute('class', "editTableRow");
+
+            for (let b = 0; b < 2; b++) {
+                let content;
+                if (b % 2 == 0) {
+                    content = value.label;
+                }
+                if (b % 2 == 1) {
+                    content = dataPoints.get(value.label);
+                }
+                var cell = document.createElement("td");
+                var cellText = document.createTextNode(content);
+                cell.appendChild(cellText);
+                if (b % 2 == 0) {
+                    cell.setAttribute('id', 'qataPageCellID' + value.label + '')
+                    cell.setAttribute('class', 'qataPageCellID')
+                }
+                if (b % 2 == 1) {
+                    cell.setAttribute('id', 'qataPageCellNumber' + value.label + '')
+                    cell.setAttribute('class', 'qataPageCellNumber')
+                }
+                row.appendChild(cell);
+            }
+            tableBody.appendChild(row);
+        }
+        mainTable.appendChild(tableBody)
+        editTable.appendChild(mainTable);
+        editBox.appendChild(editTable);
+
+        let header = mainTable.createTHead();
+        let hRow = header.insertRow(0);
+        let hCell = hRow.insertCell(0);
+        hCell.innerText = "item";
+        hCell.classList.add("qataPageCellID")
+        let hCell2 = hRow.insertCell(1);
+        hCell2.innerText = "value";
+        hCell2.classList.add("qataPageCellNumber")
+
+        //buttons that user selects while editing
+        let editor = document.createElement("div");
+        editor.classList.add("afterEditor")
+        editBox.appendChild(editor);
+
+        let btn = document.createElement("button");
+        btn.setAttribute("id", "editMinusBtn");
+        btn.setAttribute("class", "editBtn");
+        btn.innerHTML = "-"
+        editor.appendChild(btn);
+        document.getElementById("editMinusBtn").addEventListener("click", () => clickEvt("editBtn", null, "minus"));
+
+        const textbox = document.createElement("input");
+        textbox.type = "text";
+        textbox.setAttribute("id", "editTextBox");
+        textbox.disabled = true;
+        textbox.addEventListener("change", () => clickEvt("editBtn", null, "value"))
+        editor.appendChild(textbox)
+
+        let btn2 = document.createElement("button");
+        btn2.setAttribute("id", "editPlusBtn");
+        btn2.setAttribute("class", "editBtn");
+        btn2.innerHTML = "+"
+        editor.appendChild(btn2);
+        document.getElementById("editPlusBtn").addEventListener("click", () => clickEvt("editBtn", null, "plus"));
+
+
+
+        let qrBox = document.createElement("div");
+        qrBox.classList.add("afterPageQr");
+        mainPage.appendChild(qrBox);
+
+        let qrContainer = document.createElement("div");
+        qrContainer.classList.add("qrContainer");
+        qrContainer.setAttribute('id', "qrContainer");
+        qrBox.appendChild(qrContainer);
+
+        let qrText = document.createElement("div");
+        qrText.setAttribute("id", "qrText");
+        qrText.addEventListener("click", () => {
+            navigator.clipboard.writeText(document.getElementById("qrText").innerHTML);
+            alert("String copied to clipboard")
+        })
+        qrBox.appendChild(qrText);
+
+        let qrBtn = document.createElement("button");
+        qrBtn.setAttribute("id", "qrBtn");
+        qrBtn.innerHTML = "continue";
+        qrBtn.addEventListener("click", () => clickEvt("transition", null, null))
+        qrBox.appendChild(qrBtn);
+
+        updateQr()
+
+    }
+}
+
+document.getElementById("qrTextDisplay").addEventListener("click", () => {
+    navigator.clipboard.writeText(document.getElementById("qrTextDisplay").innerHTML);
+    alert("String copied to clipboard");
+})
+
+timerInit();
+
+//defines time length, starts timer 
+function timerInit() {
+    // if (window.timerFunction != null) return;
+    // timer = 150;
+    // delay = true;
+    // updateTimer();
+    window.timerFunction = setInterval(updateTimer, timeInt)
+    // console.log("timer started")
+}
+
+function timerStart() {
+    const firstStart = !timerIsTicking
+    timerIsTicking = true;
+    if (firstStart) {
+        timer = 150;
+        updateTimer();
+    }
+}
+
+function timerStop() {
+    timerIsTicking = false;
+    document.getElementById("display-timer").innerHTML = "";
+}
+
+function updateTimer() {
+    if (!timerIsTicking) return;
+    document.getElementById("display-timer").innerHTML = timer;
+    if (timer > 0) {
+        timer--;
+    }
+}
+
+let isSorted = false;
+function updateQr() {
+    combAllianceColor = allianceColor + dataPoints.get("Team Position");
+    dataPoints.set("Alliance Color", allianceColor);
+
+    if (!isSorted) sortData();
+
+    //reference for qr gen: https://github.com/kazuhikoarase/qrcode-generator/blob/master/js/README.md
+
+    var typeNumber = 0;
+    var errorCorrectionLevel = 'L';
+    var qr = qrcode(typeNumber, errorCorrectionLevel);
+    let stuff = JSON.stringify(dataPoints, (key, value) => (value instanceof Map ? [...value] : value));
+    qr.addData(stuff);
+    qr.make();
+    document.getElementById('qrContainer').innerHTML = qr.createImgTag();
+    document.getElementById("qrText").innerHTML = stuff;
+}
+
+function sortData() {
+    const sortedData = new Map();
+    const metaData = ["Scout ID", "Team Number", "Match Number", "Team Position", "Scout Team"]
+    for (const key of metaData) {
+        sortedData.set(key, dataPoints.get(key));
+    }
+
+    for (const [key, value] of dataPoints) {
+        if (key in metaData) continue;
+        console.log ("Key: " + key);
+        if (typeof value == "string") {
+            console.log("Key: " + key);
+
+            let textValue = value;
+
+            textValue = textValue.replace(/\n/g, ' ');
+            if (textValue.length == 0) {
+                dataPoints.set(key, "None");
+            } else {
+                dataPoints.set(key, textValue);
+            }
+        }
+        sortedData.set(key, value);
+    }
+    isSorted = true;
+    dataPoints = sortedData;
+}
+
+let incArr = []
+let selected = -1;
+function clickEvt(type, loc, rev = null) {
+    console.log(type + " " + loc);
+    let clickAudio = new Audio("sfx/click.wav")
+    clickAudio.play();
+    //during game
+    if (type == "int") {
+        document.getElementById("box" + loc).classList.remove("clickAnim");
+        void document.getElementById("box" + loc).offsetWidth;
+        if (rev) {
+            dataPoints.set(loc, dataPoints.get(loc) - 1);
+            document.getElementById("box" + loc).classList.add("clickAnim");
+        }
+        if (!rev) {
+            dataPoints.set(loc, dataPoints.get(loc) + 1);
+            document.getElementById("box" + loc).classList.add("clickAnim");
+        }
+        document.getElementById("label" + loc).innerHTML = dataPoints.get(loc);
+    }
+    if (type == "bool") {
+        dataPoints.set(loc, !dataPoints.get(loc));
+        document.getElementById("label" + loc).innerHTML = dataPoints.get(loc);
+        if (dataPoints.get(loc)) {
+            document.getElementById("box" + loc).style.backgroundColor = "var(--accentColor)"
+        } else {
+            document.getElementById("box" + loc).style.backgroundColor = "var(--altBgColor)"
+        }
+    }
+    if (type == "inc") {
+        if (rev) {
+            return;
+        }
+        if (incArr.includes(loc)) {
+            incArr.splice(incArr.indexOf(loc), 1);
+            document.getElementById("box" + loc).style.backgroundColor = "var(--altBgColor)";
+        }
+        else {
+            incArr.push(loc);
+            document.getElementById("box" + loc).style.backgroundColor = "var(--accentColor)";
+        }
+        document.getElementById("label" + loc).innerHTML = dataPoints.get(loc);
+    }
+
+
+
+    if (type == "cycG") {
+        document.getElementById("box" + loc).classList.remove("clickAnim");
+        void document.getElementById("box" + loc).offsetWidth;
+        let curVal = dataPoints.get(loc);
+        let cycOptions;
+        for (let sectionName in settings) {
+            let section = settings[sectionName];
+            for (let i = 0; i < section.length; i++) {
+                if (section[i].label == loc) {
+                    cycOptions = section[i].cycGOptions
+                    break;
+                }
+            }
+        }
+        let index = (cycOptions.indexOf(curVal) + 1) % cycOptions.length;
+        dataPoints.set(loc, cycOptions[index]);
+        document.getElementById("label" + loc).innerHTML = dataPoints.get(loc);
+        document.getElementById("box" + loc).classList.add("clickAnim");
+    }
+    //after game
+
+    if (type == "cyc") {
+        if (dataPoints.get(loc)) {
+            dataPoints.get(loc) = rev;
+            for (let i = 0; i < settings.after[0].cycOptions.length; i++) {
+                document.getElementById((loc + "cyc" + settings.after[0].cycOptions[i])).style.border = "2px solid var(--highlightColor)";
+            }
+            document.getElementById((loc + "cyc" + rev)).style.border = "2px solid var(--accentColor)";
+        }
+        if (!dataPoints.get(loc)) {
+            dataPoints.set(loc, rev);
+            document.getElementById((loc + "cyc" + rev)).style.border = "2px solid var(--accentColor)";
+        }
+    }
+
+    if (type == "afterBool") {
+        dataPoints.set(loc, !dataPoints.get(loc));
+    }
+
+    if (type == "edit") {
+
+        for (const key of rowContent.keys()) {
+            document.getElementById(("tr" + key)).classList.remove("editSelect");
+        }
+        selected = loc;
+        document.getElementById(("tr" + loc)).classList.add("editSelect");
+        if (rowContent.get(loc).writeType == "bool") {
+            document.getElementById("editTextBox").disabled = true;
+        }
+        if (rowContent.get(loc).writeType != "bool") {
+            document.getElementById("editTextBox").disabled = false;
+        }
+        document.getElementById("editTextBox").value = dataPoints.get(loc);
+    }
+    if (type == "editBtn") {
+        if (selected == -1) {
+            alert("nothing selected")
+            return;
+        }
+
+        if (rev == "value") {
+            const entry = document.getElementById("editTextBox").value;
+            if (!isNaN(entry)) {
+                dataPoints.set(selected, parseInt(entry));
+                document.getElementById(("qataPageCellNumber" + selected)).innerHTML = dataPoints.get(selected);
+            }
+        }
+
+        if (rowContent.get(selected).writeType == "bool") {
+            dataPoints.set(selected, !dataPoints.get(selected));
+        }
+
+        if ((rowContent.get(selected).writeType == "int") || (rowContent.get(selected).writeType == "inc")) {
+            if (rev == "plus") {
+                dataPoints.set(selected, dataPoints.get(selected) + 1);
+            }
+            if (rev == "minus") {
+                dataPoints.set(selected, dataPoints.get(selected) - 1);
+            }
+        }
+        if (rowContent.get(selected).writeType == "cycG") {
+            let curVal = dataPoints.get(selected);
+            let cycOptions = rowContent.get(selected).cycGOptions;
+            const index = (cycOptions.indexOf(curVal) + 1) % cycOptions.length;
+            dataPoints.set(selected, cycOptions[index]);
+            console.log(dataPoints.get(selected));
+        }
+
+        document.getElementById(("qataPageCellNumber" + selected)).innerHTML = dataPoints.get(selected);
+        document.getElementById("editTextBox").value = dataPoints.get(selected);
+
+    }
+
+    if (state == "after") {
+        updateQr();
+    }
+
+    if (type == "transition") {
+        if (confirm("Resetting game... if not scanned, cancel now or forever hold your peace")) {
+            localStorage.setItem(dataPoints.get("Match Number"), JSON.stringify(dataPoints, (key, value) => (value instanceof Map ? [...value] : value)));
+            console.log("Final Data: " + dataPoints);
+            resetGame()
+        }
+    }
+
+    console.log(dataPoints);
+}
+
+//def and climb timers
+setInterval(() => {
+    if ((state == "after") || (state == "init")) {
+        return;
+    }
+    for (let i = 0; i < incArr.length; i++) {
+        dataPoints.set(incArr[i], dataPoints.get(incArr[i]) + 1);
+        document.getElementById("label" + incArr[i]).innerHTML = dataPoints.get(incArr[i]);
+    }
+}, 1000)
+
+function  transition(i) {
+    if (i == 0 && state == "init") {
+        dataPoints = new Map(getDataSettings());
+        const scoutID = document.getElementById("initIdForm").value;
+        const matchNum = document.getElementById("initMatchForm").value;
+        const teamNum = document.getElementById("initNumberForm").value;
+        const teamPos = document.getElementById("initPositionForm").value;
+        const scoutTeam = document.getElementById("initTeamForm").value;
+
+        if (!testing) {
+            if (!(allianceColor == 'b' || allianceColor == 'r')) { //check alliance color
+                alert("Did you enter the alliance color by clicking eScouting?")
+                return;
+            }
+            if (scoutID == "") { //check scout name
+                alert("Enter your Scout ID.")
+                return;
+            }
+            if (!(/^\d+$/.test(teamNum)) || !teamList.includes(parseInt(teamNum))) { //check if team number is a number
+                alert("Enter your team number correctly.")
+                return;
+            }
+            if (!(/^\d+$/.test(matchNum)) || parseInt(matchNum) < 0 || parseInt(matchNum) > 500) { //check if match number is a number
+                alert("Enter the match number correctly.")
+                return;
+            }
+            if (scoutTeam == "") {
+                alert("Enter your scout team number.");
+                return;
+            }
+            if (!(teamPos == 1 || teamPos == 2 || teamPos == 3)) { //check if team position is 1, 2, or 3
+                alert("Enter your team position correctly.")
+                return;
+            }
+        }
+
+        dataPoints.set("Scout ID", scoutID);
+        dataPoints.set("Team Number", parseInt(teamNum));
+        dataPoints.set("Match Number", parseInt(matchNum));
+        dataPoints.set("Team Position", parseInt(teamPos));
+        dataPoints.set("Scout Team", parseInt(scoutTeam));
+        dataPoints.set("Alliance Color", allianceColor);
+
+        combAllianceColor = allianceColor + teamPos;
+        console.log("alliance color: " + combAllianceColor);
+        document.getElementById("infoBar").innerHTML = "Match: " + matchNum + ", Team: " + teamNum + ", Position: " + combAllianceColor
+
+        document.getElementById("initFormContainer").classList.add("transitionEvent0");
+        setTimeout(() => {
+            document.getElementById("initFormContainer").classList.add("hideClass");
+        }, 100)
+        document.getElementById("initDivLine").classList.add("transitionEvent1");
+        document.getElementById("standbyContainer").classList.add("transitionEvent0Rev");
+        setTimeout(() => {
+            document.getElementById("standbyContainer").style.display = "flex";
+            //canvasClicked()
+        }, 1000)
+        state = "standby"
+        return;
+
+    }
+    if (i == 1 && state == "standby") {
+        timerStart();
+        generateMainPage("tele");
+    }
+    if (i == 4) {
+        let removeElem = (settings.tele.length) * 3
+        for (let i = 0; i < removeElem; i++) {
+
+            mainPageElem = document.getElementById("mainPage");
+            mainPageElem.removeChild(mainPageElem.lastElementChild)
+        }
+        generateMainPage("after");
+    }
+}
+
+function resetGame() {
+    isSorted = false;
+    state = "init";
+    timer = 150;
+    delay = true;
+    rowContent = new Map();
+    incArr = [];
+    selected = -1;
+    timerStop();
+    notesToggled = false;
+
+    //clearing main page and generating the displaybar
+    document.getElementById("mainPage").innerHTML = '';
+    let displayBar = document.createElement("div");
+    displayBar.setAttribute("id", "displayBar");
+    mainPage.appendChild(displayBar);
+
+    //clear infobar
+    document.getElementById("infoBar").innerHTML = '';
+
+    //resetting initial page values
+    document.getElementById("initIdForm").value = dataPoints.get("Scout ID");
+    document.getElementById("initNumberForm").value = '';
+    document.getElementById("initMatchForm").value = parseInt(dataPoints.get("Match Number")) + 1;
+    document.getElementById("initPositionForm").value = dataPoints.get("Team Position");
+    document.getElementById("initColor").style = "background-color: var(--" + allianceColor + ")";
+    document.getElementById("qrImage").innerHTML = "";
+    document.getElementById("searchForm").value = '';
+    document.getElementById("notes").value = '';
+
+    // dataPoints = new Map(getDataSettings());
+
+    //close out of note box
+    document.getElementById('notes').blur()
+
+    const box1 = document.createElement("div");
+    box1.classList.add("flex");
+    const box2 = document.createElement("div");
+    box2.classList.add("flex");
+    let displayMatch = document.createElement("div");
+    displayMatch.setAttribute("id", "display-match");
+    // displayBar.appendChild(displayMatch);
+    let displayTimer = document.createElement("div");
+    displayTimer.setAttribute("id", "display-timer");
+    // displayBar.appendChild(displayTimer);
+    let displayTeam = document.createElement("div");
+    displayTeam.setAttribute("id", "display-team");
+    // displayBar.appendChild(displayTeam);
+    let backBtn = document.createElement("button");
+    backBtn.setAttribute("id", "back");
+    backBtn.setAttribute("class", "autoButton");
+    backBtn.innerHTML = "Back";
+    let continueBtn = document.createElement("button");
+    continueBtn.setAttribute("id", "continue");
+    continueBtn.setAttribute("class", "autoButton");
+    continueBtn.innerHTML = "Next";
+    // console.log("Continue Button Created");
+
+    box1.appendChild(displayMatch);
+    box1.appendChild(displayTeam);
+    box2.appendChild(backBtn);
+    box2.appendChild(continueBtn);
+
+    displayBar.appendChild(box1);
+    displayBar.appendChild(displayTimer);
+    displayBar.appendChild(box2);
+
+    mainPage.innerHTML += '<div id="reset" onclick="abortMatch()">Abort</div>';
+    document.getElementById("mainPage").style.display = "none";
+
+    document.getElementById("initPage").style.display = "flex";
+    document.getElementById("standbyContainer").style.display = "none";
+    document.getElementById("initDivLine").classList.remove("transitionEvent1")
+    document.getElementById("initFormContainer").classList.remove("hideClass")
+    document.getElementById("initFormContainer").classList.remove("transitionEvent0")
+
+    document.getElementById("mainPage").classList.remove("afterPageContainer");
+    document.getElementById("mainPage").classList.add("mainPage");
+
+    document.getElementById("continue").addEventListener("click", nextStage);
+    document.getElementById("back").addEventListener("click", previousStage);
+}
+
+function nextStage() {
+    if (state == "tele") {
+        transition(4);
+    }
+    console.log("Continue Button Clicked");
+}
+
+function previousStage() {
+    if (state == "tele") {
+        abortMatch();
+    }
+    console.log("Back Button Clicked");
+}
+
+//buffers for phase switching
+//manual vs auto phase switching
+//hour logging?
+//till next break>??
+//custom keybinds
+//custom colour themes
+//custom sounds but its already implemented :shrug:
+document.getElementById("exitSettingsButton").addEventListener("click", () => {
+    document.getElementById("initPage").style.display = "flex";
+    document.getElementById("settingsPage").style.display = "none";
+})
+
+document.getElementById("settingsBtn").addEventListener("click", () => {
+    document.getElementById("settingsPage").style.display = "flex";
+    document.getElementById("initPage").style.display = "none";
+})
+
+
+let appearanceBtn = document.getElementsByClassName("appearanceBtnElem");
+for (let i = 0; i < appearanceBtn.length; i++) {
+    appearanceBtn[i].addEventListener("click", () => {
+        changeColor(appearanceBtn[i].getAttribute("id"));
+    })
+}
+
+function changeColor(id) {
+    var r = document.querySelector(':root')
+    r.style.setProperty('--mainColor', themes[id][0]);
+    r.style.setProperty('--subColor', themes[id][1]);
+    r.style.setProperty('--accentColor', themes[id][1]);
+    r.style.setProperty('--bgColor', themes[id][2]);
+    r.style.setProperty('--altBgColor', themes[id][3]);
+    r.style.setProperty('--highlightColor', themes[id][3]);
+    r.style.setProperty("--filter", themes[id][5])
+
+    //main, second, bg, highlight
+}
+function abortMatch() {
+    if (confirm("Are you sure you want to reset the match?")) {
+        // The user clicked "OK", so proceed with the action
+        console.log("User confirmed, proceeding...");
+        let tempNum = document.getElementById("initNumberForm").value;
+        dataPoints.set("Match Number", dataPoints.get("Match Number") - 1);
+        resetGame();
+        document.getElementById("initNumberForm").value = tempNum;
+        notesToggled = false;
+        document.getElementById('notes').blur()
+    } else {
+        return;
+    }
+}
+
+document.getElementById("customStyleBtn").addEventListener("click", () => {
+    let arr = document.getElementsByClassName("appearanceForm");
+    for (let i = 0; i < arr.length; i++) {
+        var input = arr[i].value;
+        var regex = /[0-9A-Fa-f]{6}/g;
+        if (input.match(regex)) {
+            document.querySelector(":root").style.setProperty(("--" + arr[i].getAttribute("id")), "#" + arr[i].value)
+        } else {
+            alert(arr[i].getAttribute("id") + " is not a valid hex color");
+        }
+
+    }
+})
+
+document.getElementById("searchBtn").addEventListener("click", () => {
+    document.getElementById("searchPage").style.display = "flex";
+    document.getElementById("initPage").style.display = "none";
+})
+
+document.getElementById("searchReturn").addEventListener("click", () => {
+    document.getElementById("searchPage").style.display = "none";
+    document.getElementById("initPage").style.display = "flex";
+})
+
+document.getElementById("searchConfirm").addEventListener("click", () => {
+    searchTerm = document.getElementById("searchForm").value
+    value = localStorage.getItem(searchTerm)
+    if (value == null || searchTerm == null || searchTerm == '') {
+        document.getElementById('qrImage').innerHTML = "";
+        document.getElementById('qrTextDisplay').display = "none";
+        console.log("No data found")
+        return
+    }
+
+    console.log("Search term: " + searchTerm)
+    console.log("Data: " + value)
+
+    var typeNumber = 0;
+    var errorCorrectionLevel = 'L';
+    var qr = qrcode(typeNumber, errorCorrectionLevel);
+    qr.addData(value);
+    qr.make();
+    /*
+    var mod = qr.getModuleCount();
+    var length = 8 + 2 * mod
+    document.getElementById('qrOutput').style.width = length;
+    document.getElementById('qrOutput').style.height = length;
+    */
+
+    const qrImage = qr.createImgTag();
+    document.getElementById('qrImage').innerHTML = qrImage;
+    document.getElementById('qrTextDisplay').style.display = "flex";
+    document.getElementById('qrTextDisplay').innerHTML = value;
+    
+    console.log("Data found for match " + searchTerm + ": ");
+    console.log(value);
+})
